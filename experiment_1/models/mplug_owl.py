@@ -1,5 +1,5 @@
 from PIL import Image
-from transformers import AutoTokenizer, AutoProcessor
+from transformers import AutoTokenizer, AutoProcessor, AutoModelForCausalLM
 from .base_model import BaseModel
 
 class MPLUGOwlModel(BaseModel):

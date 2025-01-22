@@ -6,6 +6,21 @@ from config.datasets import datasets
 from config.models import models
 from models import load_model
 
+
+def load_images_folder(images_folder_path, sort=False):
+
+    # add other extensions and robust checking also
+    images = [f for f in os.listdir(images_folder_path) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+    
+    if sort:
+        images.sort()
+    
+    return images
+    
+#############################
+#### Change this function so that it writes while things are happening, not at the end!!
+#############################
+
 def save_results_to_csv(results, timestamp):
     """Save results to CSV file"""
     results_dir = "results"
@@ -13,6 +28,7 @@ def save_results_to_csv(results, timestamp):
     
     # Prepare data for DataFrame
     rows = []
+    
     for model, model_data in results.items():
         for dataset, dataset_data in model_data.items():
             for prompt, predictions in dataset_data.items():
@@ -26,9 +42,15 @@ def save_results_to_csv(results, timestamp):
                     }
                     rows.append(row)
     
+    # experiment num
+    i = 1
+    
+    # Create the filename
+    filename = f"experiment_{i}_results_{timestamp}.csv"
+    csv_path = os.path.join(results_dir, filename)
+
     # Create DataFrame and save to CSV
     df = pd.DataFrame(rows)
-    csv_path = f'{results_dir}/results_{timestamp}.csv'
     df.to_csv(csv_path, index=False)
     print(f"Results saved to {csv_path}")
     
@@ -54,12 +76,13 @@ def run_experiment():
             try:
                 # Load dataset samples
                 dataset_path = dataset_config["path"]
+                print(f"Dataset path: {dataset_path}")
                 sample_size = dataset_config["sample_size"]
+                print(f"Sample size: {sample_size}")
                 
-                # TODO: Implement dataset loading
-                # samples = load_dataset(dataset_path, sample_size)
-                # Format: [(image_id, image_path), ...]
-                samples = []  # placeholder
+                # TODO: Better Dataset loading (batching using Dataloader ig)
+                
+                samples = load_images_folder(dataset_path, sort=True)
                 
                 print(f"Loaded {len(samples)} samples from {dataset_name}")
                 
@@ -68,16 +91,18 @@ def run_experiment():
                     predictions = {}
                     
                     try:
-                        for i, (image_id, image_path) in enumerate(samples):
+                        for i, image_id in enumerate(samples):
+                            print(f"Processing image: {image_id}")
                             try:
                                 # Format prompt with image
-                                formatted_prompt = prompt_config["text"].replace("<image>", image_path)
+                                image_path = os.path.join(dataset_path, image_id)
                                 
                                 # Get model prediction
-                                raw_prediction = model_instance.generate(formatted_prompt, image_path)
-                                score = model_instance.process_output(raw_prediction)
-                                
-                                predictions[image_id] = score
+                                raw_prediction = model_instance.generate(prompt_config["text"], image_path)
+                                # score = model_instance.process_output(raw_prediction)
+
+                                # I want the raw predictions for now
+                                predictions[image_id] = raw_prediction
                                 
                                 if (i + 1) % 10 == 0:  # Print progress every 10 samples
                                     print(f"Processed {i + 1}/{len(samples)} samples")
