@@ -1,13 +1,17 @@
 from .base_model import BaseModel
-from .mplug_owl import MPLUGOwlModel
+from .mplug_owl2 import MPLUGOwl2Model
 from .llava_1_5 import LLAVA1_5
 from .llava_1_6 import LLAVA1_6
+from .idefics_9b_instruct import IDEFICS9bModel
+from .internlm_xc2_vl import InternLMXC2Model
 
 # Map model names to their implementations
 MODEL_REGISTRY = {
-    "mPLUG-Owl3-7B-240728": MPLUGOwlModel,
+    "mplug-owl2-llama2-7b": MPLUGOwl2Model,
     "llava-v1.5-7b": LLAVA1_5,
     "llava-v1.6-vicuna-7b": LLAVA1_6,
+    "idefics-9b-instruct": IDEFICS9bModel,
+    "internlm-xcomposer-vl-7b": InternLMXC2Model,
 }
 
 def load_model(model_config):

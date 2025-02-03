@@ -11,16 +11,14 @@ class LLAVA1_6(BaseModel):
         self.processor = LlavaNextProcessor.from_pretrained(self.model_path)
 
         self.model = LlavaNextForConditionalGeneration.from_pretrained(self.model_path, torch_dtype=torch.float16) 
-        
-        # self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
-        
+                
         # Move model to GPU if available
         self.model.to('cuda')
     
     def generate(self, prompt, image_path):
 
         # Load and process image
-        image = Image.open(image_path)
+        image = Image.open(image_path).convert("RGB")
 
         conversation = [
             {
@@ -39,14 +37,20 @@ class LLAVA1_6(BaseModel):
 
         inputs.to('cuda')
 
-        output = self.model.generate(**inputs, max_new_tokens=100)
-        
+        output = self.model.generate(**inputs, max_new_tokens=300)
+        embeds = output # getting the embeddings out
         output = self.processor.decode(output[0], skip_special_tokens=True)
        
-        return output
+        return output, embeds
     
-    def process_output(self, output):
+  # this code snippet follows Q-Bench
+    def process_output(self, embeds):
         """Extract score from model output."""
-        # TODO: Implement score extraction based on the output format
-        # This will depend on how the model formats its response
-        return float(output)  # placeholder 
+
+        good_idx, poor_idx = self.processor.tokenizer(["good","poor"]).tolist()
+
+        output_logits = self.model(input_embeds=embeds).logits[0,-1]
+
+        q_pred = (output_logits[[good_idx, poor_idx]] / 100).softmax(0)[0]
+        
+        return float(q_pred) 
