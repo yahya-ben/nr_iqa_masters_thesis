@@ -15,17 +15,6 @@ def load_images_folder(images_folder_path, sort=False):
         images.sort()
     return images
 
-def process_direct_output(raw_prediction):
-    """Process direct output responses."""
-    try:
-        # Try to find a number in the response
-        numbers = re.findall(r'\d+(?:\.\d+)?', raw_prediction)
-        if numbers:
-            return float(numbers[0])
-    except:
-        return None
-    return None
-
 def process_direct_output_with_regex(raw_prediction, regex_pattern):
     """Process outputs that need specific regex extraction."""
     try:
@@ -34,7 +23,7 @@ def process_direct_output_with_regex(raw_prediction, regex_pattern):
             return float(match.group(1))
     except:
         return None
-    return None
+    return raw_prediction
 
 def process_softmax_based(embeddings, token_pairs):
     """Process softmax-based outputs."""
@@ -55,37 +44,37 @@ def process_ccot_direct_guided(raw_prediction):
         return None
     return None
 
-def process_chain_prompt(prompt_data, model_instance, image_path):
-    """Process prompts that work in a chain."""
-    results = {}
+def process_scene_graph_prompt_output(scene_graph):
+    """Extracts the JSON scene graph from the provided text."""
     
-    # Execute prompts in specified order
-    for step in prompt_data["chain_order"]:
-        prompt_config = prompt_data["versions"][step]
-        
-        # Format prompt with previous results if needed
-        formatted_prompt = prompt_config["text"]
-        if prompt_config.get("input_type") == "scene_graph":
-            # Get the scene graph from previous step
-            scene_graph = results.get("v1")
-            if scene_graph:
-                formatted_prompt = formatted_prompt.format(scene_graph=scene_graph)
-        
-        # Get model prediction
-        raw_prediction, embeddings = model_instance.generate(formatted_prompt, image_path)
-        
-        # Store intermediate results
-        results[step] = raw_prediction
-        
-        # If this is the final step, process for score
-        if step == prompt_data["chain_order"][-1]:
-            if prompt_config["extraction_method"] == "ccot_direct_guided":
-                score = process_ccot_direct_guided(raw_prediction)
-                return score
+    # Split the text to find the JSON part after "ASSISTANT: "
+    parts = scene_graph.split("ASSISTANT: ")
+    # if len(parts) < 2:
+    #     return None  # No JSON found
     
-    return None
+    json_str = parts[-1].strip()  # Take the last part and remove whitespace
+    return json_str
+    
 
-def save_results_to_csv(results, model_name, timestamp, experiment_num):
+def process_ccot_prompt(followup_prompt, scene_graph, model_instance, image_path):
+    """Process prompts that work in a chain."""
+
+    sg = process_scene_graph_prompt_output(scene_graph)
+
+    # print(f"Scene graph only: {scene_graph}")
+    
+    followup_prompt = followup_prompt.format(scene_graph=sg)
+
+    # print(f"Followup prompt: {followup_prompt}")
+        
+    # Get model prediction
+    raw_prediction, embeddings = model_instance.generate(followup_prompt, image_path)
+
+    # score = process_ccot_direct_guided(raw_prediction)
+    score = raw_prediction
+    return score
+
+def save_results_to_csv(results, model_name, timestamp):
     """Save results to CSV file for a specific model."""
     results_dir = "results"
     os.makedirs(results_dir, exist_ok=True)
@@ -161,10 +150,14 @@ def run_experiment():
                             try:
                                 image_path = os.path.join(dataset_path, image_id)
                                 
-                                # Check if this is a chain prompt
-                                prompt_data = prompts.get(prompt_name.split('_')[0])
-                                if prompt_data and prompt_data.get("type") == "chain":
-                                    score = process_chain_prompt(prompt_data, model_instance, image_path)
+                                
+                                if prompt_name == "prompt3_v1":
+                                    scene_graph, embeddings = model_instance.generate(prompt_config["text"], image_path)
+                                    # print(scene_graph)
+                                    score = -1
+                                elif prompt_name == "prompt3_v2":
+                                    score = process_ccot_prompt(prompt_config["text"], scene_graph, model_instance, image_path)
+                                
                                 else:
                                     # Regular prompt processing
                                     raw_prediction, embeddings = model_instance.generate(prompt_config["text"], image_path)
@@ -177,10 +170,11 @@ def run_experiment():
                                                 prompt_config["regex_pattern"]
                                             )
                                         else:
-                                            score = process_direct_output(raw_prediction)
+                                            score = raw_prediction
                                     
                                     elif prompt_config["extraction_method"] == "softmax_based":
                                         score = model_instance.process_output(embeddings)
+                                        score = -1
                                     
                                     elif prompt_config["extraction_method"] == "ccot_direct_guided":
                                         score = process_ccot_direct_guided(raw_prediction)

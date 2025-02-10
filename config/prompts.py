@@ -10,7 +10,7 @@ prompts = {
         "description": "Basic quality rating prompt",
         "versions": {
             "v1": {
-                "text": "Rate the quality of the image.",
+                "text": "Rate the quality of the image.", # the model doesn't always respond as intended
                 "extraction_method": "direct_output",
                 "active": True
             },
@@ -23,8 +23,15 @@ prompts = {
                 "text": "Rate the quality of the image.",
                 "extraction_method": "softmax_based",
                 "token_pairs": ["good", "poor"],  # for softmax comparison
-                "active": True
-            }
+                "active": False
+            },
+            "v4": {
+                "text": "The quality of the image is ",
+                "extraction_method": "softmax_based",
+                "token_pairs": ["good", "poor"],  # for softmax comparison
+                "active": False
+            },
+            
         }
     },
 
@@ -59,8 +66,6 @@ prompts = {
 
     "prompt3": {
         "description": "Compositional chain-of-thought prompt",
-        "type": "chain",
-        "chain_order": ["v1", "v2"],
         "versions": {
             "v1": {
                 "text": """
@@ -73,27 +78,56 @@ prompts = {
 
                 Scene Graph:
                 """,
-                "extraction_method": "ccot_direct_guided",
+                "extraction_method": "ccot_direct_guided_1",
                 "requires_json": True,
                 "active": True,
                 "output_type": "scene_graph"
             },
             "v2": {
                 "text": """
-                Use the image and following scene graph as context and answer the following question: 
-                
-                {scene_graph}
+                Use the image and the following scene graph {scene_graph} as context and answer the following question: 
 
                 Evaluate the quality of the image as follows: (1) Bad (2) Poor (3) Fair (4) Good (5) Excellent
 
                 Answer with the option's digit from the given choices directly.
                 """,
-                "extraction_method": "ccot_direct_guided",
+                "extraction_method": "ccot_direct_guided_2",
                 "requires_json": True,
                 "active": True,
                 "input_type": "scene_graph",
                 "output_type": "score"
-            }
+            },
+            
+            "v3": {
+            "text": """
+            
+            Question: Rate the quality of the image.
+            
+            For the provided image and its associated question, generate a scene graph in JSON format that includes the following:
+            1. Objects that are relevant to answering the question
+            2. Object attributes that are relevant to answering the question
+            3. Object relationships that are relevant to answering the question
+
+            Scene Graph:
+            """,
+            "extraction_method": "ccot_direct_guided_1",
+            "requires_json": True,
+            "active": False,
+            "output_type": "scene_graph"
+        },
+
+            "v4": {
+            "text": """
+            
+            Use the image and the following scene graph {scene_graph} as context and answer to rate the quality of the image.
+            Your answer should be: The quality of the image is 
+            """,
+            "extraction_method": "ccot_direct_guided_1",
+            "requires_json": True,
+            "active": False,
+            "output_type": "scene_graph"
+        },
+
         }
     },
 
