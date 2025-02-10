@@ -185,6 +185,44 @@ prompts = {
                 "active": False
             }
         }
+    },
+    
+     "prompt7":{
+        "description": "New type of prompt",
+        "versions": {
+            "v1": {
+                "text": """
+- Can you tell if there is movement in this image?
+- Can you tell what time during the day this image is taken?
+- Can you tell what is going on in this image?
+- Can you tell roughly which camera is used to take this picture?
+- What would be the ideal setup for capturing a high-quality image in this scenario?
+- Considering how closely the actual setup aligns with this ideal setup, rate the technical quality of the image on the following scale: 5: Excellent, 4: Good, 3: Fair, 2: Bad, 1: Poor.""",
+                "extraction_method": "direct_output",
+                "active": False
+            },
+            
+            "v2": {
+                "text": """
+Based on this image, what would it take to capture a high quality image to minimize distortions that might affect this image? Only output your propositions like this: (1) ... (2) ...""",
+                "extraction_method": "direct_output",
+                "active": True
+            },
+
+             "v3": {
+                "text": """
+You are provided with an image and a list of guidlines {the_list} to take a high-quality image to minimize distortions that might affect this image. 
+
+For each proposition in the list of guidlines, tell me if based on your understanding of the image, the guidlines are followed or violated. Rate how the actual image setup is aligned with the guidlines using the following scale:
+- 5: Excellent – The actual setup aligns very closely with the ideal.
+- 4: Good – The actual setup is mostly similar to the ideal, with only minor deviations.
+- 3: Fair – There are noticeable differences between the actual setup and the ideal.
+- 2: Bad – The actual setup diverges significantly from the ideal, impacting quality.
+- 1: Poor – The actual setup is far from ideal, resulting in major quality issues.""",
+                "extraction_method": "direct_output",
+                "active": True
+            },
+        }
     }
 }
 
